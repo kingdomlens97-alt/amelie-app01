@@ -8,10 +8,10 @@ app.use(express.json());
 
 const api = new MetaApi('COLLE TON TOKEN METAAPI ICI');
 
-// On stocke qui copie qui (après on mettra en base de données)
-let masters = {}; // { masterId: [followerId1, followerId2] }
+let masters = {};
+let priceAlerts = []; // On stocke les alertes ici
 
-app.get('/', (req,res) => res.send('Amelie Etape 3 Copy B OK'));
+app.get('/', (req,res) => res.send('Amelie Etape 4 Alertes OK'));
 
 app.get('/dashboard/:accountId', async (req, res) => {
   try {
@@ -40,24 +40,35 @@ app.post('/multi-sl-tp', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- NOUVEAU : COPY TRADING B ---
 app.post('/become-master/:accountId', (req, res) => {
   masters[req.params.accountId] = masters[req.params.accountId] || [];
-  console.log(`${req.params.accountId} est devenu Master`);
   res.json({ success: true, masters });
 });
-
 app.get('/list-masters', (req, res) => {
   res.json({ masters: Object.keys(masters) });
 });
-
 app.post('/copy-master', (req, res) => {
   const { masterId, followerId } = req.body;
   if (!masters[masterId]) masters[masterId] = [];
-  if (!masters[masterId].includes(followerId)) {
-    masters[masterId].push(followerId);
-  }
+  if (!masters[masterId].includes(followerId)) masters[masterId].push(followerId);
   res.json({ success: true, message: `Tu copies ${masterId}`, masters });
 });
 
-app.listen(10000, () => console.log('Serveur Etape 3 Copy B lancé'));
+// --- NOUVEAU : ALERTE PRIX ---
+app.post('/price-alert', (req, res) => {
+  const { symbol, price, phone } = req.body;
+  priceAlerts.push({ symbol, price: parseFloat(price), phone, id: Date.now() });
+  console.log(`Nouvelle alerte ${symbol} à ${price} pour ${phone}`);
+  res.json({ success: true, message: `Alerte placée sur ${symbol} à ${price}`, alerts: priceAlerts });
+});
+
+app.get('/price-alerts', (req, res) => {
+  res.json({ alerts: priceAlerts });
+});
+
+app.delete('/price-alert/:id', (req, res) => {
+  priceAlerts = priceAlerts.filter(a => a.id != req.params.id);
+  res.json({ success: true, alerts: priceAlerts });
+});
+
+app.listen(10000, () => console.log('Serveur Etape 4 lancé'));
